@@ -11,6 +11,7 @@ import (
 	"syscall"
 )
 
+/* Init */
 var db *sql.DB
 
 func main() {
@@ -36,6 +37,7 @@ func main() {
         Handler: mux,
     }
 
+    /* create Go routine */
     go func() {
         log.Printf("Server runs on %s", srv.Addr)
         if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
@@ -55,6 +57,7 @@ func main() {
     log.Println("Server stopped.")
 }
 
+/* Init db */
 func initDatabase() (*sql.DB, error) {
     connStr := "postgres://placeholder" //placeholder
     db, err := sql.Open("postgres", connStr)
@@ -67,6 +70,7 @@ func initDatabase() (*sql.DB, error) {
     return db, nil
 }
 
+/* Helper functions */
 func migrateDatabase(db *sql.DB) error {
     _, err := db.Exec(`CREATE TABLE IF NOT EXISTS migrations (id SERIAL PRIMARY KEY, name TEXT)`)
     return err
