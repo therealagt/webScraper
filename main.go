@@ -22,7 +22,7 @@ func main() {
         log.Fatalf("DB init error: %v", err)
     }
 
-    scraper := scraper.NewScraper(10, 10, "MyUserAgent", db)
+    scraper := scraper.NewScraper(5, 10, "MyUserAgent", db)
 
     scraper.Scrape("https://example.com", 100)
     
