@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+    "github.com/therealagt/webScraper/scraper"
 )
 
 /* Init */
@@ -21,6 +22,10 @@ func main() {
         log.Fatalf("DB init error: %v", err)
     }
 
+    scraper := scraper.NewScraper(5, 10, "MyUserAgent", db)
+
+    scraper.Scrape("https://example.com", 100)
+    
     if err := migrateDatabase(db); err != nil {
         log.Fatalf("Migration error: %v", err)
     }
@@ -72,7 +77,18 @@ func initDatabase() (*sql.DB, error) {
 
 /* Helper functions */
 func migrateDatabase(db *sql.DB) error {
-    _, err := db.Exec(`CREATE TABLE IF NOT EXISTS migrations (id SERIAL PRIMARY KEY, name TEXT)`)
+    _, err := db.Exec(`
+        CREATE TABLE IF NOT EXISTS raw_html (
+            id SERIAL PRIMARY KEY,
+            url TEXT,
+            max_pages INT, 
+            concurrency INT,
+            html BYTEA,
+            totalResults INT,
+            scraped_at TIMESTAMP DEFAULT NOW()
+            completed_at TIMESTAMP
+        )
+    `)
     return err
 }
 
