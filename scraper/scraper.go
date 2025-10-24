@@ -30,7 +30,9 @@ func (s *Scraper) Scrape(url string, maxPages int) {
 	for i := 1; i <= maxPages; i++ {
 		pageURL := fmt.Sprintf("%s?page=%d", url, i)
 		s.fetchPage(pageURL)
+		s.ReportProgress(i, maxPages)
 	}
+	fmt.Println("Scrape Job done!")
 }
 
 /* http get && error handling */
@@ -59,3 +61,7 @@ func (s *Scraper) saveRawHTMLToDB(url string, body []byte) {
 	}
 }
 
+/* job progress */
+func (s *Scraper)ReportProgress(current, total int) {
+	fmt.Printf("Scraping progress: %d/%d pages done\n", current, total)
+}

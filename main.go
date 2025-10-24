@@ -9,7 +9,8 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-    "github.com/therealagt/webScraper/scraper"
+
+	"github.com/therealagt/webScraper/scraper"
 )
 
 /* Init */
@@ -22,7 +23,7 @@ func main() {
         log.Fatalf("DB init error: %v", err)
     }
 
-    scraper := scraper.NewScraper(5, 10, "MyUserAgent", db)
+    scraper := scraper.NewScraper(10, 10, "MyUserAgent", db)
 
     scraper.Scrape("https://example.com", 100)
     
@@ -42,7 +43,7 @@ func main() {
         Handler: mux,
     }
 
-    /* create Go routine */
+    /* create go routine */
     go func() {
         log.Printf("Server runs on %s", srv.Addr)
         if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
