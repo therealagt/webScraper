@@ -9,8 +9,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-
-	"github.com/therealagt/webScraper/scraper"
+	"webScraper/scraper"
 )
 
 /* Init */
