@@ -27,24 +27,24 @@ func NewScraper(maxConcurrency, timeout int, userAgent string, db *sql.DB) *Scra
 
 /* setting for scrape operation */
 func (s *Scraper) Scrape(url string, maxPages int) {
-	sem := make(chan struct{}, s.MaxConcurrency)
-	done := make(chan struct{})
+	concurrencyLimiter := make(chan struct{}, s.MaxConcurrency)
+	scrapeDone := make(chan struct{})
 
 	for i := 1; i <= maxPages; i++ {
-		sem <- struct{}{}
+		concurrencyLimiter <- struct{}{}
 		go func(page int) {
-			defer func() { <-sem }()
+			defer func() { <-concurrencyLimiter }()
 			pageURL := fmt.Sprintf("%s?page=%d", url, page)
 			s.fetchPage(pageURL)
 			s.ReportProgress(i, maxPages)
 			if page == maxPages {
-				done <- struct{}{}
+				scrapeDone <- struct{}{}
 			}
 		}(i)
 	}
 
 	for i := 0; i < s.MaxConcurrency; i++ {
-		sem <- struct{}{}
+		concurrencyLimiter <- struct{}{}
 	}
 	fmt.Println("Scrape Job done!")
 }
