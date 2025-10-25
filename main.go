@@ -31,8 +31,6 @@ func main() {
 
     scraper := scraper.NewScraper(5, 10, "MyUserAgent", db)
     scraper.Scrape("https://de.wikipedia.org/wiki/Webscraping", 100)
-    
-    repos := setupRepositories(db)
 
     mux := http.NewServeMux()
     setupRoutes(mux, repos)
@@ -105,14 +103,7 @@ func migrateDatabase(db *sql.DB) error {
     return err
 }
 
-type Repositories struct {
-}
-
-func setupRepositories(db *sql.DB) *Repositories {
-    return &Repositories{}
-}
-
-func setupRoutes(mux *http.ServeMux, repos *Repositories) {
+func setupRoutes(mux *http.ServeMux) {
     mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
         fmt.Fprintln(w, "Hello, World!")
     })
