@@ -70,7 +70,9 @@ func (s *Scraper) fetchPage(url string) {
 /* raw html db save */
 func (s *Scraper) saveRawHTMLToDB(url string, body []byte) {
 	_, err := s.DB.Exec(
-		"INSERT INTO raw_html (url, html) VALUES ($1, $2)", url, body)
+		"INSERT INTO raw_html (url, html, scraped_at) VALUES ($1, $2, NOW())",
+		url, body,
+	)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "DB insert error: %v\n", err)
 	}

@@ -18,7 +18,6 @@ func worker(id int, jobs <-chan int, results chan<- int, abort <-chan struct{}) 
             done := make(chan struct{})
             go func() {
                 fmt.Println("worker", id, "started job", j)
-                Task(j)
                 fmt.Println("worker", id, "finished job", j)
                 results <- j * 2
                 close(done)

@@ -10,6 +10,9 @@ import (
 	"os/signal"
 	"syscall"
 	"webScraper/scraper"
+
+	"github.com/joho/godotenv"
+	_ "github.com/lib/pq"
 )
 
 /* Init */
@@ -21,15 +24,14 @@ func main() {
     if err != nil {
         log.Fatalf("DB init error: %v", err)
     }
-
-    scraper := scraper.NewScraper(5, 10, "MyUserAgent", db)
-
-    scraper.Scrape("https://example.com", 100)
     
     if err := migrateDatabase(db); err != nil {
-        log.Fatalf("Migration error: %v", err)
+    log.Fatalf("Migration error: %v", err)
     }
 
+    scraper := scraper.NewScraper(5, 10, "MyUserAgent", db)
+    scraper.Scrape("https://de.wikipedia.org/wiki/Webscraping", 100)
+    
     repos := setupRepositories(db)
 
     mux := http.NewServeMux()
@@ -64,7 +66,18 @@ func main() {
 
 /* Init db */
 func initDatabase() (*sql.DB, error) {
-    connStr := "postgres://placeholder" //placeholder
+    godotenv.Load()
+
+    host := os.Getenv("DB_HOST")
+    port := os.Getenv("DB_PORT")
+    user := os.Getenv("DB_USER")
+    password := os.Getenv("DB_PASSWORD")
+    dbname := os.Getenv("DB_NAME")
+
+    connStr := fmt.Sprintf(
+        "host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
+        host, port, user, password, dbname,
+    )
     db, err := sql.Open("postgres", connStr)
     if err != nil {
         return nil, err
@@ -85,7 +98,7 @@ func migrateDatabase(db *sql.DB) error {
             concurrency INT,
             html BYTEA,
             totalResults INT,
-            scraped_at TIMESTAMP DEFAULT NOW()
+            scraped_at TIMESTAMP DEFAULT NOW(),
             completed_at TIMESTAMP
         )
     `)
