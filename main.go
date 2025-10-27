@@ -8,7 +8,12 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
+	"time"
+	"webScraper/database"
+	"webScraper/handler"
+	"webScraper/scanner"
 	"webScraper/scraper"
 
 	"github.com/joho/godotenv"
@@ -28,12 +33,34 @@ func main() {
     if err := migrateDatabase(db); err != nil {
     log.Fatalf("Migration error: %v", err)
     }
+    
+    if err := database.MigrateParsedResults(db); err != nil {
+        log.Fatalf("Migration error: %v", err)
+    }
+
+    urls, err := scanner.ReadURLsFromFile("urls.txt")
+    if err != nil {
+        log.Fatalf("Error reading the urls: %v", err)
+    }
 
     scraper := scraper.NewScraper(5, 10, "MyUserAgent", db)
-    scraper.Scrape("https://de.wikipedia.org/wiki/Webscraping", 100)
+
+    ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+    defer cancel()
+
+    var wg sync.WaitGroup
+    for i, url := range urls {
+        wg.Add(1)
+        go func(i int, url string) {
+            defer wg.Done()
+            scraper.Scrape(ctx, url, 1)
+            fmt.Printf("Global progress: %d/%d URLs done\n", i+1, len(urls))
+        }(i, url)
+    }
+    wg.Wait()
 
     mux := http.NewServeMux()
-    setupRoutes(mux, repos)
+    setupRoutes(mux)
 
     mux.HandleFunc("/health", healthCheckHandler)
 
@@ -54,9 +81,9 @@ func main() {
     signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
     <-quit
     log.Println("Shutdown...")
-    ctx, cancel := context.WithTimeout(context.Background(), 5_000_000_000) 
+    ctxServer, cancel := context.WithTimeout(context.Background(), 5*time.Second) 
     defer cancel()
-    if err := srv.Shutdown(ctx); err != nil {
+    if err := srv.Shutdown(ctxServer); err != nil {
         log.Fatalf("Server Shutdown: %v", err)
     }
     log.Println("Server stopped.")
@@ -88,15 +115,18 @@ func initDatabase() (*sql.DB, error) {
 
 /* Helper functions */
 func migrateDatabase(db *sql.DB) error {
-    _, err := db.Exec(`
-        CREATE TABLE IF NOT EXISTS raw_html (
+    _, err := db.Exec(`DROP TABLE IF EXISTS raw_html`)
+    if err != nil {
+        return err
+    }
+    _, err = db.Exec(`
+        CREATE TABLE raw_html (
             id SERIAL PRIMARY KEY,
             url TEXT,
-            max_pages INT, 
+            max_pages INT,
             concurrency INT,
             html BYTEA,
             totalResults INT,
-            scraped_at TIMESTAMP DEFAULT NOW(),
             completed_at TIMESTAMP
         )
     `)
@@ -107,6 +137,7 @@ func setupRoutes(mux *http.ServeMux) {
     mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
         fmt.Fprintln(w, "Hello, World!")
     })
+    mux.HandleFunc("/query", handler.QueryHandler(db))
 }
 
 func healthCheckHandler(w http.ResponseWriter, r *http.Request) {
@@ -116,3 +147,4 @@ func healthCheckHandler(w http.ResponseWriter, r *http.Request) {
     }
     fmt.Fprintln(w, "OK")
 }
+

@@ -15,7 +15,7 @@ type ParsedResults struct {
 }
 
 /* migrate parsed results */
-func (p *Postgres) MigrateParsedResults(db *sql.DB) error {
+func MigrateParsedResults(db *sql.DB) error {
     _, err := db.Exec(`
         CREATE TABLE IF NOT EXISTS parsed_results (
             url TEXT,
@@ -56,6 +56,27 @@ func (p *Postgres) ReadParsedResults() ([]ParsedResults, error) {
         results = append(results, r)
     }
     return results, nil
+}
+
+/* update parsed results */
+func (p *Postgres) UpdateParsedResult(url, price, title string, scraped_at time.Time) error {
+    _, err := p.DB.Exec("UPDATE parsed_results SET price=$2, title=$3, scraped_at=$4 WHERE url=$1", 
+    url, price, title, scraped_at,
+    )
+    return err
+}
+
+/* delete parsed results */
+func (p *Postgres) DeleteParsedResult(url string) error {
+    _, err := p.DB.Exec("DELETE FROM parsed_results WHERE url=$1", url)
+    return err
+}
+
+/* count parsed results */
+func (p *Postgres) CountParsedResults() (int, error) {
+    var count int
+    err := p.DB.QueryRow("SELECT COUNT(*) FROM parsed_results").Scan(&count)
+    return count, err
 }
 
 /* rawhtml to parsedResults */

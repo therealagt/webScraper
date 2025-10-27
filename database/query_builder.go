@@ -14,6 +14,34 @@ type QueryBuilder struct {
 	Limit		int	
 }
 
+/* all rawhtmlquery functions combined */
+func (qb *QueryBuilder) BuildRawHTMLQuery() string {
+    var whereClauses []string
+
+    if links := qb.FilterLinks(); links != "" {
+        whereClauses = append(whereClauses, links)
+    }
+    if keywords := qb.FilterKeywords(); keywords != "" {
+        whereClauses = append(whereClauses, keywords)
+    }
+    if date := qb.FilterDate(); date != "" {
+        whereClauses = append(whereClauses, date)
+    }
+
+    where := ""
+    if len(whereClauses) > 0 {
+        where = "WHERE " + strings.Join(whereClauses, " AND ")
+    }
+
+    query := fmt.Sprintf(
+        "SELECT * FROM raw_html %s %s %s;",
+        where,
+        qb.Sort(),
+        qb.LimitClause(),
+    )
+    return query
+}
+
 /* filter for links */
 func (qb *QueryBuilder) FilterLinks() string {
 	var conditions []string
@@ -56,5 +84,5 @@ func (qb *QueryBuilder) LimitClause() string {
     if qb.Limit > 0 {
         return fmt.Sprintf("LIMIT %d", qb.Limit)
     }
-    return "LIMIT 100" // Default
+    return "LIMIT 100" 
 }
