@@ -11,12 +11,12 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
 	"webScraper/database"
 	"webScraper/handler"
 	"webScraper/scanner"
 	"webScraper/scraper"
 
-	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 )
 
@@ -25,12 +25,16 @@ var db *sql.DB
 
 func main() {
     var err error
-    db, err = initDatabase()
+
+    /* db init and migrate stuff */
+    db, err = database.InitDatabase()
     if err != nil {
         log.Fatalf("DB init error: %v", err)
     }
     
-    if err := migrateDatabase(db); err != nil {
+    scraper := scraper.NewScraper(5, 10, "MyUserAgent", db)
+
+    if err := database.MigrateDatabase(db); err != nil {
     log.Fatalf("Migration error: %v", err)
     }
     
@@ -43,12 +47,21 @@ func main() {
         log.Fatalf("Error reading the urls: %v", err)
     }
 
-    scraper := scraper.NewScraper(5, 10, "MyUserAgent", db)
-
+    /* time ctx for go routines */
     ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
     defer cancel()
 
-    var wg sync.WaitGroup
+    /* route handling */
+    mux := handler.SetupRoutes(db)
+
+    /* server config */
+    srv := &http.Server{
+        Addr:    ":8080",
+        Handler: mux,
+    }
+
+    /* create go routine for scraper */
+     var wg sync.WaitGroup
     for i, url := range urls {
         wg.Add(1)
         go func(i int, url string) {
@@ -59,17 +72,7 @@ func main() {
     }
     wg.Wait()
 
-    mux := http.NewServeMux()
-    setupRoutes(mux)
-
-    mux.HandleFunc("/health", healthCheckHandler)
-
-    srv := &http.Server{
-        Addr:    ":8080",
-        Handler: mux,
-    }
-
-    /* create go routine */
+    /* create go routine for server parallel to scraping */
     go func() {
         log.Printf("Server runs on %s", srv.Addr)
         if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
@@ -89,62 +92,5 @@ func main() {
     log.Println("Server stopped.")
 }
 
-/* Init db */
-func initDatabase() (*sql.DB, error) {
-    godotenv.Load()
 
-    host := os.Getenv("DB_HOST")
-    port := os.Getenv("DB_PORT")
-    user := os.Getenv("DB_USER")
-    password := os.Getenv("DB_PASSWORD")
-    dbname := os.Getenv("DB_NAME")
-
-    connStr := fmt.Sprintf(
-        "host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
-        host, port, user, password, dbname,
-    )
-    db, err := sql.Open("postgres", connStr)
-    if err != nil {
-        return nil, err
-    }
-    if err := db.Ping(); err != nil {
-        return nil, err
-    }
-    return db, nil
-}
-
-/* Helper functions */
-func migrateDatabase(db *sql.DB) error {
-    _, err := db.Exec(`DROP TABLE IF EXISTS raw_html`)
-    if err != nil {
-        return err
-    }
-    _, err = db.Exec(`
-        CREATE TABLE raw_html (
-            id SERIAL PRIMARY KEY,
-            url TEXT,
-            max_pages INT,
-            concurrency INT,
-            html BYTEA,
-            totalResults INT,
-            completed_at TIMESTAMP
-        )
-    `)
-    return err
-}
-
-func setupRoutes(mux *http.ServeMux) {
-    mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-        fmt.Fprintln(w, "Hello, World!")
-    })
-    mux.HandleFunc("/query", handler.QueryHandler(db))
-}
-
-func healthCheckHandler(w http.ResponseWriter, r *http.Request) {
-    if err := db.Ping(); err != nil {
-        http.Error(w, "DB not healthy", http.StatusServiceUnavailable)
-        return
-    }
-    fmt.Fprintln(w, "OK")
-}
 

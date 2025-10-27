@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 )
+
 type Postgres struct {
 	DB *sql.DB
 	Host string 

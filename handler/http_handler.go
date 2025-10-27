@@ -7,6 +7,7 @@ import (
 	"webScraper/database"
 )
 
+/* http handler */
 func QueryHandler(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		links := r.URL.Query()["link"]

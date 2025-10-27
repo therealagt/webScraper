@@ -78,7 +78,7 @@ func (s *Scraper) fetchPage(ctx context.Context, url string, maxPages, totalResu
         fmt.Fprintf(os.Stderr, "fetch: invalid url %q\n", url)
         return
     }
-    req, _ := http.NewRequestWithContext(context.Background(), "GET", url, nil)
+    req, _ := http.NewRequestWithContext(ctx, "GET", url, nil)
     resp, err := http.DefaultClient.Do(req)
     if err != nil {
         fmt.Fprintf(os.Stderr, "fetch: %v\n", err)
@@ -103,9 +103,7 @@ func (s *Scraper) fetchPage(ctx context.Context, url string, maxPages, totalResu
 
 /* raw html db save */
 func (s *Scraper) saveRawHTMLToDB(url string, body []byte, maxPages, concurrency, totalResults int, completedAt sql.NullTime) {
-	fmt.Printf("Insert: url=%s, maxPages=%d, concurrency=%d, html=%d bytes, totalResults=%d, completedAt=%v\n", url, maxPages, concurrency, len(body), totalResults, completedAt)
-	
-    _, err := s.DB.Exec(
+	_, err := s.DB.Exec(
         `INSERT INTO raw_html 
         (url, max_pages, concurrency, html, totalResults, completed_at) 
         VALUES ($1, $2, $3, $4, $5, $6)`,

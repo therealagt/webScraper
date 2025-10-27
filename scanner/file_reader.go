@@ -1,8 +1,8 @@
 package scanner
 
 import (
-    "bufio"
-    "os"
+	"bufio"
+	"os"
 )
 
 func ReadURLsFromFile(filename string) ([]string, error) {
