@@ -48,7 +48,7 @@ func main() {
     }
 
     /* time ctx for go routines */
-    ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
     defer cancel()
 
     /* route handling */
@@ -60,19 +60,7 @@ func main() {
         Handler: mux,
     }
 
-    /* create go routine for scraper */
-     var wg sync.WaitGroup
-    for i, url := range urls {
-        wg.Add(1)
-        go func(i int, url string) {
-            defer wg.Done()
-            scraper.Scrape(ctx, url, 1)
-            fmt.Printf("Global progress: %d/%d URLs done\n", i+1, len(urls))
-        }(i, url)
-    }
-    wg.Wait()
-
-    /* create go routine for server parallel to scraping */
+     /* create go routine for server parallel to scraping */
     go func() {
         log.Printf("Server runs on %s", srv.Addr)
         if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
@@ -90,7 +78,25 @@ func main() {
         log.Fatalf("Server Shutdown: %v", err)
     }
     log.Println("Server stopped.")
+
+    /* create go routine for scraper */
+     var wg sync.WaitGroup
+    for i, url := range urls {
+        wg.Add(1)
+        go func(i int, url string) {
+            defer wg.Done()
+            scraper.Scrape(ctx, url, 1)
+            fmt.Printf("Global progress: %d/%d URLs done\n", i+1, len(urls))
+        }(i, url)
+
+        parseFunc := func(url string, html []byte) (string, string, time.Time) {
+            // hier brauche ich parsing logic
+            return "", url, time.Now()
+        }
+
+        if err := database.ProcessRawHTML(parseFunc); err != nil { //kp was hier geht
+            log.Fatalf("Parsing error: %v", err)
+        }
+    }
+    wg.Wait()
 }
-
-
-

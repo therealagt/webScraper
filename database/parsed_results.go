@@ -11,27 +11,31 @@ type ParsedResults struct {
 	URL 		string
 	Price		string
 	Title 		string 
-	ScrapedAt	time.Time
+	CompletedAt	time.Time
 }
 
 /* migrate parsed results */
 func MigrateParsedResults(db *sql.DB) error {
-    _, err := db.Exec(`
+    _, err := db.Exec(`DROP TABLE IF EXISTS parsed_results`)
+    if err != nil {
+        return err
+    }
+    _, err = db.Exec(`
         CREATE TABLE IF NOT EXISTS parsed_results (
             url TEXT,
             price TEXT,
             title TEXT,
-            scraped_at TIMESTAMP
+            completed_at TIMESTAMP
         )
     `)
     return err
 }
 
 /* input of parsed results */
-func (p *Postgres) InputParsedResults(url, price, title string, scraped_at time.Time) error {
+func (p *Postgres) InputParsedResults(url, price, title string, completed_at time.Time) error {
 	_, err := p.DB.Exec(
-		"INSERT INTO parsed_results (url, price, title, scraped_at) VALUES ($1, $2, $3, $4)",
-		url, price, title, scraped_at,
+		"INSERT INTO parsed_results (url, price, title, completed_at) VALUES ($1, $2, $3, $4)",
+		url, price, title, completed_at,
 	)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "DB insert error: %v\n", err)
@@ -41,7 +45,7 @@ func (p *Postgres) InputParsedResults(url, price, title string, scraped_at time.
 
 /* read parsed results */
 func (p *Postgres) ReadParsedResults() ([]ParsedResults, error) {
-    rows, err := p.DB.Query("SELECT url, price, title, scraped_at FROM parsed_results")
+    rows, err := p.DB.Query("SELECT url, price, title, completed_at FROM parsed_results")
     if err != nil {
         return nil, err
     }
@@ -50,7 +54,7 @@ func (p *Postgres) ReadParsedResults() ([]ParsedResults, error) {
     var results []ParsedResults
     for rows.Next() {
         var r ParsedResults
-        if err := rows.Scan(&r.URL, &r.Price, &r.Title, &r.ScrapedAt); err != nil {
+        if err := rows.Scan(&r.URL, &r.Price, &r.Title, &r.CompletedAt); err != nil {
             return nil, err
         }
         results = append(results, r)
@@ -59,9 +63,9 @@ func (p *Postgres) ReadParsedResults() ([]ParsedResults, error) {
 }
 
 /* update parsed results */
-func (p *Postgres) UpdateParsedResult(url, price, title string, scraped_at time.Time) error {
-    _, err := p.DB.Exec("UPDATE parsed_results SET price=$2, title=$3, scraped_at=$4 WHERE url=$1", 
-    url, price, title, scraped_at,
+func (p *Postgres) UpdateParsedResult(url, price, title string, completed_at time.Time) error {
+    _, err := p.DB.Exec("UPDATE parsed_results SET price=$2, title=$3, completed_at=$4 WHERE url=$1", 
+    url, price, title, completed_at,
     )
     return err
 }
@@ -80,8 +84,8 @@ func (p *Postgres) CountParsedResults() (int, error) {
 }
 
 /* rawhtml to parsedResults */
-func (p *Postgres) ProcessRawHTML(parseFunc func(url string, html []byte) (price, title string, scrapedAt time.Time)) error {
-    rows, err := p.DB.Query("SELECT url, html, scraped_at FROM raw_html")
+func (p *Postgres) ProcessRawHTML(parseFunc func(url string, html []byte) (price, title string, completed_at time.Time)) error {
+    rows, err := p.DB.Query("SELECT url, html, completed_at FROM raw_html")
     if err != nil {
         return err
     }
@@ -90,12 +94,12 @@ func (p *Postgres) ProcessRawHTML(parseFunc func(url string, html []byte) (price
     for rows.Next() {
         var url string
         var html []byte
-        var scrapedAt time.Time
-        if err := rows.Scan(&url, &html, &scrapedAt); err != nil {
+        var completedAt time.Time
+        if err := rows.Scan(&url, &html, &completedAt); err != nil {
             return err
         }
-        price, title, parsedAt := parseFunc(url, html)
-        if err := p.InputParsedResults(url, price, title, parsedAt); err != nil {
+        price, title, completedAt := parseFunc(url, html)
+        if err := p.InputParsedResults(url, price, title, completedAt); err != nil {
             return err
         }
     }

@@ -63,7 +63,7 @@ func (qb *QueryBuilder) FilterKeywords() string {
 /* filter date */
 func (qb *QueryBuilder) FilterDate() string {
     if qb.DateFrom != "" && qb.DateTo != "" {
-        return fmt.Sprintf("scraped_at BETWEEN '%s' AND '%s'", qb.DateFrom, qb.DateTo)
+        return fmt.Sprintf("completed_at BETWEEN '%s' AND '%s'", qb.DateFrom, qb.DateTo)
     }
     return ""
 }
@@ -72,7 +72,7 @@ func (qb *QueryBuilder) FilterDate() string {
 func (qb *QueryBuilder) Sort() string {
     switch qb.SortBy {
     case "date":
-        return "ORDER BY scraped_at DESC"
+        return "ORDER BY completed_at DESC"
     case "size":
         return "ORDER BY octet_length(html) DESC"
     default:
