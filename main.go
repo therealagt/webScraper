@@ -14,6 +14,7 @@ import (
 
 	"webScraper/database"
 	"webScraper/handler"
+	"webScraper/parser"
 	"webScraper/scanner"
 	"webScraper/scraper"
 
@@ -51,6 +52,31 @@ func main() {
     ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
     defer cancel()
 
+    /* parsing html */
+    keyword := "price" 
+
+    parseFunc := func(url string, html []byte) (string, string, sql.NullTime) {
+        price, title, completedAt := parser.ParseFunc(url, html, keyword)
+        return price, title, sql.NullTime{Time: completedAt, Valid: true}
+    }
+    
+    /* create go routine for scraper */
+     var wg sync.WaitGroup
+    for i, url := range urls {
+        wg.Add(1)
+        go func(i int, url string) {
+            defer wg.Done()
+            scraper.Scrape(ctx, url, 1)
+            fmt.Printf("Global progress: %d/%d URLs done\n", i+1, len(urls))
+        }(i, url)
+    }
+    wg.Wait()
+
+    postgres := &database.Postgres{DB: db}
+    if err := postgres.ProcessRawHTML(parseFunc); err != nil { 
+        log.Fatalf("Parsing error: %v", err)
+    }
+
     /* route handling */
     mux := handler.SetupRoutes(db)
 
@@ -78,25 +104,4 @@ func main() {
         log.Fatalf("Server Shutdown: %v", err)
     }
     log.Println("Server stopped.")
-
-    /* create go routine for scraper */
-     var wg sync.WaitGroup
-    for i, url := range urls {
-        wg.Add(1)
-        go func(i int, url string) {
-            defer wg.Done()
-            scraper.Scrape(ctx, url, 1)
-            fmt.Printf("Global progress: %d/%d URLs done\n", i+1, len(urls))
-        }(i, url)
-
-        parseFunc := func(url string, html []byte) (string, string, time.Time) {
-            // hier brauche ich parsing logic
-            return "", url, time.Now()
-        }
-
-        if err := database.ProcessRawHTML(parseFunc); err != nil { //kp was hier geht
-            log.Fatalf("Parsing error: %v", err)
-        }
-    }
-    wg.Wait()
 }

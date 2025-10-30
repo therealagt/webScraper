@@ -4,14 +4,13 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
-	"time"
 )
 
 type ParsedResults struct {
 	URL 		string
 	Price		string
 	Title 		string 
-	CompletedAt	time.Time
+	CompletedAt	sql.NullTime
 }
 
 /* migrate parsed results */
@@ -32,7 +31,7 @@ func MigrateParsedResults(db *sql.DB) error {
 }
 
 /* input of parsed results */
-func (p *Postgres) InputParsedResults(url, price, title string, completed_at time.Time) error {
+func (p *Postgres) InputParsedResults(url, price, title string, completed_at sql.NullTime) error {
 	_, err := p.DB.Exec(
 		"INSERT INTO parsed_results (url, price, title, completed_at) VALUES ($1, $2, $3, $4)",
 		url, price, title, completed_at,
@@ -63,7 +62,7 @@ func (p *Postgres) ReadParsedResults() ([]ParsedResults, error) {
 }
 
 /* update parsed results */
-func (p *Postgres) UpdateParsedResult(url, price, title string, completed_at time.Time) error {
+func (p *Postgres) UpdateParsedResult(url, price, title string, completed_at sql.NullTime) error {
     _, err := p.DB.Exec("UPDATE parsed_results SET price=$2, title=$3, completed_at=$4 WHERE url=$1", 
     url, price, title, completed_at,
     )
@@ -84,7 +83,7 @@ func (p *Postgres) CountParsedResults() (int, error) {
 }
 
 /* rawhtml to parsedResults */
-func (p *Postgres) ProcessRawHTML(parseFunc func(url string, html []byte) (price, title string, completed_at time.Time)) error {
+func (p *Postgres) ProcessRawHTML(parseFunc func(url string, html []byte) (price, title string, completed_at sql.NullTime)) error {
     rows, err := p.DB.Query("SELECT url, html, completed_at FROM raw_html")
     if err != nil {
         return err
@@ -94,8 +93,8 @@ func (p *Postgres) ProcessRawHTML(parseFunc func(url string, html []byte) (price
     for rows.Next() {
         var url string
         var html []byte
-        var completedAt time.Time
-        if err := rows.Scan(&url, &html, &completedAt); err != nil {
+        var dbCompletedAt sql.NullTime
+        if err := rows.Scan(&url, &html, &dbCompletedAt); err != nil {
             return err
         }
         price, title, completedAt := parseFunc(url, html)
