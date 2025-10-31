@@ -49,7 +49,7 @@ func main() {
     }
 
     /* time ctx for go routines */
-    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+    ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
     defer cancel()
 
     /* parsing html */
@@ -58,23 +58,6 @@ func main() {
     parseFunc := func(url string, html []byte) (string, string, sql.NullTime) {
         price, title, completedAt := parser.ParseFunc(url, html, keyword)
         return price, title, sql.NullTime{Time: completedAt, Valid: true}
-    }
-    
-    /* create go routine for scraper */
-     var wg sync.WaitGroup
-    for i, url := range urls {
-        wg.Add(1)
-        go func(i int, url string) {
-            defer wg.Done()
-            scraper.Scrape(ctx, url, 1)
-            fmt.Printf("Global progress: %d/%d URLs done\n", i+1, len(urls))
-        }(i, url)
-    }
-    wg.Wait()
-
-    postgres := &database.Postgres{DB: db}
-    if err := postgres.ProcessRawHTML(parseFunc); err != nil { 
-        log.Fatalf("Parsing error: %v", err)
     }
 
     /* route handling */
@@ -86,7 +69,6 @@ func main() {
         Handler: mux,
     }
 
-     /* create go routine for server parallel to scraping */
     go func() {
         log.Printf("Server runs on %s", srv.Addr)
         if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
@@ -94,12 +76,30 @@ func main() {
         }
     }()
 
+    /* create go routine for scraper */
+    const maxDepth = 3
+    var wg sync.WaitGroup
+    for i, url := range urls {
+        wg.Add(1)
+        go func(i int, url string) {
+            defer wg.Done()
+            scraper.ScrapeWithDepth(ctx, url, maxDepth)
+            fmt.Printf("Global progress: %d/%d URLs done\n", i+1, len(urls))
+        }(i, url)
+    }
+    wg.Wait()
+
+    postgres := &database.Postgres{DB: db}
+    if err := postgres.ProcessRawHTML(parseFunc); err != nil { 
+        log.Fatalf("Parsing error: %v", err)
+    }
+
     quit := make(chan os.Signal, 1)
     signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
     <-quit
     log.Println("Shutdown...")
-    ctxServer, cancel := context.WithTimeout(context.Background(), 5*time.Second) 
-    defer cancel()
+    ctxServer, cancelServer := context.WithTimeout(context.Background(), 5*time.Second) 
+    defer cancelServer()
     if err := srv.Shutdown(ctxServer); err != nil {
         log.Fatalf("Server Shutdown: %v", err)
     }
