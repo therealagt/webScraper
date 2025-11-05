@@ -2,10 +2,8 @@
 
 This will be my first full stack project in GO.
 
-I'm aiming for an efficient web scraper thats using Go's build in concurrency to scrape multiple sites at once.
+I'm aiming for an efficient web scraper thats using Go's build in concurrency to scrape multiple sites at once including depth levels. So links on the given urls are beeing followed multiple levels down.
 
 I'll be using postgreSQL to specify the scrape jobs and finally return the structured results.
 
-Finally there will be some kind of UI, probably in form of a simple dashboard in React, displaying the number of jobs, time spent while doing so etc..
-
-Goal will be to run some basic price comparisons or maybe comparing subscription plans and content.
+UI is a simple SPA with some help of an agent, featuring basic buttons to initiate a new scrape and filter for more results.
