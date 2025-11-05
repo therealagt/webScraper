@@ -58,40 +58,6 @@ func main() {
     log.Println("Server started. Use the web interface to upload URLs and start scraping.")
     log.Println("Open http://localhost:8080 in your browser.")
 
-    // Uncomment below to run scraping on startup from urls.txt
-    /*
-    urls, err := scanner.ReadURLsFromFile("urls.txt")
-    if err != nil {
-        log.Printf("Warning: Could not read urls.txt: %v", err)
-    } else {
-        ctx, cancel := context.WithTimeout(context.Background(), 30*time.Minute)
-        defer cancel()
-
-        const maxDepth = 3
-        var wg sync.WaitGroup
-        for i, url := range urls {
-            wg.Add(1)
-            go func(i int, url string) {
-                defer wg.Done()
-                scraper.ScrapeWithDepth(ctx, url, maxDepth)
-                fmt.Printf("Global progress: %d/%d URLs done\n", i+1, len(urls))
-            }(i, url)
-        }
-        wg.Wait()
-
-        keyword := "price"
-        parseFunc := func(url string, html []byte) (string, string, sql.NullTime) {
-            price, title, completedAt := parser.ParseFunc(url, html, keyword)
-            return price, title, sql.NullTime{Time: completedAt, Valid: true}
-        }
-
-        postgres := &database.Postgres{DB: db}
-        if err := postgres.ProcessRawHTML(parseFunc); err != nil {
-            log.Printf("Parsing error: %v", err)
-        }
-    }
-    */
-
     quit := make(chan os.Signal, 1)
     signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
     <-quit
