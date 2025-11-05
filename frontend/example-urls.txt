@@ -1,0 +1,5 @@
+https://example.com/page1
+https://example.com/page2
+https://example.com/page3
+https://example.org/shop
+https://example.net/products

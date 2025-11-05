@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Web Scraper</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <!-- Header -->
+    <header class="header">
+      <h1 class="header__title">WEB SCRAPER</h1>
+      <div class="header__actions">
+        <button class="btn" id="newScrapeBtn">NEW SCRAPE</button>
+        <button class="btn" id="viewResultsBtn">VIEW RESULTS</button>
+        <button class="btn" id="statsBtn">STATS</button>
+      </div>
+    </header>
+
+    <!-- Main Container -->
+    <div class="container">
+      <!-- Sidebar -->
+      <aside class="sidebar">
+        <h2 class="sidebar__title">PREVIOUS SCRAPES</h2>
+        <div class="sidebar__list" id="scrapesList">
+          <div class="sidebar__empty">No scrapes yet</div>
+        </div>
+      </aside>
+
+      <!-- Main Content -->
+      <main class="main">
+        <!-- New Scrape Form -->
+        <section class="section" id="newScrapeSection">
+          <h2 class="section__title">START NEW SCRAPE</h2>
+
+          <!-- Drag and Drop Zone -->
+          <div class="dropzone" id="dropzone">
+            <div class="dropzone__content">
+              <div class="dropzone__icon">📄</div>
+              <div class="dropzone__text">
+                <strong>DROP YOUR .TXT FILE HERE</strong>
+                <span>or click to browse</span>
+              </div>
+              <input
+                type="file"
+                id="fileInput"
+                accept=".txt"
+                class="dropzone__input"
+              />
+            </div>
+            <div class="dropzone__file-info hidden" id="fileInfo">
+              <div class="file-badge">
+                <span class="file-badge__name" id="fileName"></span>
+                <button class="file-badge__remove" id="removeFile">✕</button>
+              </div>
+              <div class="file-badge__count" id="fileCount"></div>
+            </div>
+          </div>
+
+          <form class="form" id="scrapeForm">
+            <div class="form__group">
+              <label class="form__label">MAX DEPTH</label>
+              <input
+                type="number"
+                class="form__input"
+                id="depthInput"
+                value="3"
+                min="1"
+                max="10"
+              />
+            </div>
+            <div class="form__group">
+              <label class="form__label">KEYWORD</label>
+              <input
+                type="text"
+                class="form__input"
+                id="keywordInput"
+                placeholder="price"
+                value="price"
+              />
+            </div>
+            <button type="submit" class="btn btn--primary">
+              START SCRAPING
+            </button>
+          </form>
+        </section>
+
+        <!-- Results View -->
+        <section class="section hidden" id="resultsSection">
+          <div class="section__header">
+            <h2 class="section__title">RESULTS</h2>
+            <button class="btn btn--small" id="refreshBtn">REFRESH</button>
+          </div>
+          <div class="filters">
+            <input
+              type="text"
+              class="form__input"
+              id="filterUrl"
+              placeholder="Filter by URL"
+            />
+            <input
+              type="text"
+              class="form__input"
+              id="filterTitle"
+              placeholder="Filter by title"
+            />
+          </div>
+          <div class="results" id="resultsContainer">
+            <div class="results__empty">No results yet</div>
+          </div>
+        </section>
+
+        <!-- Stats View -->
+        <section class="section hidden" id="statsSection">
+          <h2 class="section__title">STATISTICS</h2>
+          <div class="stats">
+            <div class="stat-card">
+              <div class="stat-card__label">TOTAL SCRAPES</div>
+              <div class="stat-card__value" id="totalScrapes">0</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-card__label">TOTAL RESULTS</div>
+              <div class="stat-card__value" id="totalResults">0</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-card__label">AVG DEPTH</div>
+              <div class="stat-card__value" id="avgDepth">0</div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
