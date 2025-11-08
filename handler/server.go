@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"net/http"
@@ -11,9 +12,9 @@ import (
 )
 
 /* route handling */
-func SetupRoutes(db *sql.DB, scraperInstance *scraper.Scraper) *http.ServeMux {
+func SetupRoutes(db *sql.DB, scraperInstance *scraper.Scraper, appCtx context.Context) *http.ServeMux {
 	mux := http.NewServeMux()
-	
+
 	// serve frontend files
 	frontendDir := "./frontend"
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -21,24 +22,24 @@ func SetupRoutes(db *sql.DB, scraperInstance *scraper.Scraper) *http.ServeMux {
 			http.ServeFile(w, r, filepath.Join(frontendDir, "index.html"))
 			return
 		}
-		
+
 		// try to serve static file
 		filePath := filepath.Join(frontendDir, r.URL.Path)
 		if _, err := os.Stat(filePath); err == nil {
 			http.ServeFile(w, r, filePath)
 			return
 		}
-		
+
 		// fallback to index.html for SPA routing
 		http.ServeFile(w, r, filepath.Join(frontendDir, "index.html"))
 	})
-	
+
 	// API routes
 	mux.HandleFunc("/query", QueryHandler(db))
 	mux.HandleFunc("/health", HealthCheckHandler(db))
 	mux.HandleFunc("/api/scrapes", ScrapesHandler(db))
-	mux.HandleFunc("/api/scrape/bulk", BulkScrapeHandler(db, scraperInstance))
-	
+	mux.HandleFunc("/api/scrape/bulk", BulkScrapeHandler(db, scraperInstance, appCtx))
+
 	return mux
 }
 
@@ -58,7 +59,7 @@ func ScrapesHandler(db *sql.DB) http.HandlerFunc {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
-		
+
 		rows, err := db.Query(`
 			SELECT id, url, max_pages, concurrency, COALESCE(totalresults, 0) as totalresults, completed_at 
 			FROM raw_html 
@@ -70,17 +71,17 @@ func ScrapesHandler(db *sql.DB) http.HandlerFunc {
 			return
 		}
 		defer rows.Close()
-		
+
 		var scrapes []map[string]interface{}
 		for rows.Next() {
 			var id, maxPages, concurrency, totalResults int
 			var url string
 			var completedAt sql.NullTime
-			
+
 			if err := rows.Scan(&id, &url, &maxPages, &concurrency, &totalResults, &completedAt); err != nil {
 				continue
 			}
-			
+
 			scrape := map[string]interface{}{
 				"id":           id,
 				"url":          url,
@@ -88,20 +89,20 @@ func ScrapesHandler(db *sql.DB) http.HandlerFunc {
 				"concurrency":  concurrency,
 				"totalresults": totalResults,
 			}
-			
+
 			if completedAt.Valid {
 				scrape["completed_at"] = completedAt.Time.Format("2006-01-02T15:04:05Z")
 			}
-			
+
 			scrapes = append(scrapes, scrape)
 		}
-		
+
 		w.Header().Set("Content-Type", "application/json")
 		if len(scrapes) == 0 {
 			fmt.Fprint(w, "[]")
 			return
 		}
-		
+
 		// simple JSON marshaling
 		fmt.Fprint(w, "[")
 		for i, scrape := range scrapes {
@@ -114,4 +115,3 @@ func ScrapesHandler(db *sql.DB) http.HandlerFunc {
 		fmt.Fprint(w, "]")
 	}
 }
-

@@ -21,51 +21,66 @@ import (
 var db *sql.DB
 
 func main() {
-    var err error
+	var err error
 
-    /* db init and migrate stuff */
-    db, err = database.InitDatabase()
-    if err != nil {
-        log.Fatalf("DB init error: %v", err)
-    }
-    
-    scraper := scraper.NewScraper(5, 10, "MyUserAgent", db)
+	/* db init and migrate stuff */
+	db, err = database.InitDatabase()
+	if err != nil {
+		log.Fatalf("DB init error: %v", err)
+	}
 
-    if err := database.MigrateDatabase(db); err != nil {
-    log.Fatalf("Migration error: %v", err)
-    }
-    
-    if err := database.MigrateParsedResults(db); err != nil {
-        log.Fatalf("Migration error: %v", err)
-    }
+	scraper := scraper.NewScraper(5, 10, "MyUserAgent", db)
 
-    /* route handling */
-    mux := handler.SetupRoutes(db, scraper)
+	if err := database.MigrateDatabase(db); err != nil {
+		log.Fatalf("Migration error: %v", err)
+	}
 
-    /* server config */
-    srv := &http.Server{
-        Addr:    ":8080",
-        Handler: mux,
-    }
+	if err := database.MigrateParsedResults(db); err != nil {
+		log.Fatalf("Migration error: %v", err)
+	}
 
-    go func() {
-        log.Printf("Server runs on %s", srv.Addr)
-        if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-            log.Fatalf("ListenAndServe: %v", err)
-        }
-    }()
+	if err := database.MigrateRawHTML(db); err != nil {
+		log.Fatalf("RawHTML Migration error: %v", err)
+	}
 
-    log.Println("Server started. Use the web interface to upload URLs and start scraping.")
-    log.Println("Open http://localhost:8080 in your browser.")
+	// global context for shutdown
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
-    quit := make(chan os.Signal, 1)
-    signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
-    <-quit
-    log.Println("Shutdown...")
-    ctxServer, cancelServer := context.WithTimeout(context.Background(), 5*time.Second) 
-    defer cancelServer()
-    if err := srv.Shutdown(ctxServer); err != nil {
-        log.Fatalf("Server Shutdown: %v", err)
-    }
-    log.Println("Server stopped.")
+	/* route handling */
+	mux := handler.SetupRoutes(db, scraper, ctx)
+
+	/* server config */
+	srv := &http.Server{
+		Addr:    ":8080",
+		Handler: mux,
+	}
+
+	go func() {
+		log.Printf("Server runs on %s", srv.Addr)
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("ListenAndServe: %v", err)
+		}
+	}()
+
+	log.Println("Server started. Use the web interface to upload URLs and start scraping.")
+	log.Println("Open http://localhost:8080 in your browser.")
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
+	<-quit
+	log.Println("Shutdown...")
+
+	// cancel context to stop all scrapers
+	cancel()
+
+	// wait briefly to allow scrapers to stop gracefully
+	time.Sleep(2 * time.Second)
+
+	ctxServer, cancelServer := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancelServer()
+	if err := srv.Shutdown(ctxServer); err != nil {
+		log.Fatalf("Server Shutdown: %v", err)
+	}
+	log.Println("Server stopped.")
 }

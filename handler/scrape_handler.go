@@ -18,7 +18,7 @@ type BulkScrapeRequest struct {
 	Keyword string   `json:"keyword"`
 }
 
-func BulkScrapeHandler(db *sql.DB, scraperInstance *scraper.Scraper) http.HandlerFunc {
+func BulkScrapeHandler(db *sql.DB, scraperInstance *scraper.Scraper, appCtx context.Context) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -42,7 +42,8 @@ func BulkScrapeHandler(db *sql.DB, scraperInstance *scraper.Scraper) http.Handle
 
 		// Start scraping in background
 		go func() {
-			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Minute)
+			// Use app context with timeout - wird beim Server-Shutdown abgebrochen
+			ctx, cancel := context.WithTimeout(appCtx, 10*time.Minute)
 			defer cancel()
 
 			var wg sync.WaitGroup
@@ -50,10 +51,12 @@ func BulkScrapeHandler(db *sql.DB, scraperInstance *scraper.Scraper) http.Handle
 				wg.Add(1)
 				go func(url string) {
 					defer wg.Done()
-					scraperInstance.ScrapeWithDepth(ctx, url, req.Depth)
+					// Verwende die normale Scrape Methode mit Context
+					scraperInstance.Scrape(ctx, url, req.Depth)
 				}(url)
 			}
 			wg.Wait()
+			fmt.Println("All scraping tasks completed or canceled")
 		}()
 
 		w.Header().Set("Content-Type", "application/json")
