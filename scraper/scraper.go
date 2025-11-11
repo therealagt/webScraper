@@ -81,6 +81,9 @@ func (s *Scraper) Scrape(ctx context.Context, url string, maxPages int) {
 			}()
 
 			s.fetchPage(ctx, url, maxPages, totalResults, completedAt)
+
+			// Add delay between requests to be respectful to servers
+			time.Sleep(2 * time.Second)
 		}(pageURL, i)
 	}
 
@@ -107,14 +110,17 @@ func (s *Scraper) fetchPage(ctx context.Context, url string, maxPages, totalResu
 		return
 	}
 
+	// Add delay before making request to be respectful to servers
+	time.Sleep(1 * time.Second)
+
 	// Context mit zusätzlichem Timeout
 	ctxWithTimeout, cancel := context.WithTimeout(ctx, time.Duration(s.Timeout)*time.Second)
 	defer cancel()
 
 	req, _ := http.NewRequestWithContext(ctxWithTimeout, "GET", url, nil)
-	req.Header.Set("User-Agent", s.UserAgent)
+	// user-Agent to avoid blocking
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36")
 
-	// Verwende s.client statt http.DefaultClient
 	resp, err := s.client.Do(req)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "fetch: %v\n", err)

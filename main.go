@@ -29,7 +29,7 @@ func main() {
 		log.Fatalf("DB init error: %v", err)
 	}
 
-	scraper := scraper.NewScraper(5, 10, "MyUserAgent", db)
+	scraper := scraper.NewScraper(5, 10, "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36", db)
 
 	if err := database.MigrateDatabase(db); err != nil {
 		log.Fatalf("Migration error: %v", err)

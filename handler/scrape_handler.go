@@ -42,7 +42,6 @@ func BulkScrapeHandler(db *sql.DB, scraperInstance *scraper.Scraper, appCtx cont
 
 		// Start scraping in background
 		go func() {
-			// Use app context with timeout - wird beim Server-Shutdown abgebrochen
 			ctx, cancel := context.WithTimeout(appCtx, 10*time.Minute)
 			defer cancel()
 
@@ -51,12 +50,10 @@ func BulkScrapeHandler(db *sql.DB, scraperInstance *scraper.Scraper, appCtx cont
 				wg.Add(1)
 				go func(url string) {
 					defer wg.Done()
-					// Verwende die normale Scrape Methode mit Context
 					scraperInstance.Scrape(ctx, url, req.Depth)
 				}(url)
 			}
 			wg.Wait()
-			fmt.Println("All scraping tasks completed or canceled")
 		}()
 
 		w.Header().Set("Content-Type", "application/json")
