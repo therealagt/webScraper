@@ -7,7 +7,7 @@ import (
 	"webScraper/database"
 )
 
-/* http handler */
+// http handler
 func QueryHandler(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		links := r.URL.Query()["link"]
@@ -30,7 +30,7 @@ func QueryHandler(db *sql.DB) http.HandlerFunc {
 		}
 
 		query := qb.BuildRawHTMLQuery()
-			fmt.Println("SQL Query:", query)
+		fmt.Println("SQL Query:", query)
 		rows, err := db.Query(query)
 		if err != nil {
 			http.Error(w, "Query error", http.StatusInternalServerError)

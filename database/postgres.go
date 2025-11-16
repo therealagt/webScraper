@@ -7,19 +7,19 @@ import (
 )
 
 type Postgres struct {
-	DB *sql.DB
-	Host string 
-	Port int
-	User string 
-	Password string 
-	DBName string 
+	DB       *sql.DB
+	Host     string
+	Port     int
+	User     string
+	Password string
+	DBName   string
 }
 
-/* connect to db */
+// connect to db
 func (p *Postgres) Connect() error {
 	connStr := fmt.Sprintf(
-    "host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
-    p.Host, p.Port, p.User, p.Password, p.DBName,
+		"host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
+		p.Host, p.Port, p.User, p.Password, p.DBName,
 	)
 	db, err := sql.Open("postgres", connStr)
 	if err != nil {
@@ -30,7 +30,7 @@ func (p *Postgres) Connect() error {
 	return nil
 }
 
-/* health check */ 
+// health check
 func (p *Postgres) Ping() error {
 	if p.DB == nil {
 		return fmt.Errorf("no database connection")

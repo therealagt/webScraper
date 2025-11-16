@@ -11,7 +11,7 @@ import (
 	"webScraper/scraper"
 )
 
-/* route handling */
+// route handling
 func SetupRoutes(db *sql.DB, scraperInstance *scraper.Scraper, appCtx context.Context) *http.ServeMux {
 	mux := http.NewServeMux()
 

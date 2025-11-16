@@ -23,7 +23,7 @@ type Scraper struct {
 	client         *http.Client
 }
 
-/* config of a new scraper */
+// config of a new scraper
 func NewScraper(maxConcurrency, timeout int, userAgent string, db *sql.DB) *Scraper {
 	return &Scraper{
 		MaxConcurrency: maxConcurrency,
@@ -42,7 +42,7 @@ func NewScraper(maxConcurrency, timeout int, userAgent string, db *sql.DB) *Scra
 	}
 }
 
-/* setting for scrape operation */
+// setting for scrape operation
 func (s *Scraper) Scrape(ctx context.Context, url string, maxPages int) {
 	// Context-Überwachung hinzufügen
 	select {
@@ -103,7 +103,7 @@ func (s *Scraper) Scrape(ctx context.Context, url string, maxPages int) {
 	}
 }
 
-/* http get && error handling */
+// http get && error handling
 func (s *Scraper) fetchPage(ctx context.Context, url string, maxPages, totalResults int, completedAt sql.NullTime) {
 	if !strings.HasPrefix(url, "http://") && !strings.HasPrefix(url, "https://") {
 		fmt.Fprintf(os.Stderr, "fetch: invalid url %q\n", url)
@@ -144,7 +144,7 @@ func (s *Scraper) fetchPage(ctx context.Context, url string, maxPages, totalResu
 	)
 }
 
-/* raw html db save */
+// raw html db save
 func (s *Scraper) saveRawHTMLToDB(url string, body []byte, maxPages, concurrency, totalResults int, completedAt sql.NullTime) {
 	_, err := s.DB.Exec(
 		`INSERT INTO raw_html 

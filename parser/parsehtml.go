@@ -6,24 +6,24 @@ import (
 	"time"
 )
 
-/* search parameters */
+// search parameters and parsing function
 func ParseFunc(url string, html []byte, keyword string) (string, string, time.Time) {
 	htmlStr := string(html)
-	var price string 
+	var price string
 	if strings.Contains(htmlStr, keyword) {
-        re := regexp.MustCompile(keyword + `\s*([0-9]+(?:[.,][0-9]+)?)`)
-        match := re.FindStringSubmatch(htmlStr)
-        if len(match) > 1 {
-            price = "found: " + match[1]
-        } else {
-            price = "found, but no number"
-        }
-    } else {
-        price = "not found"
-    }
+		re := regexp.MustCompile(keyword + `\s*([0-9]+(?:[.,][0-9]+)?)`)
+		match := re.FindStringSubmatch(htmlStr)
+		if len(match) > 1 {
+			price = "found: " + match[1]
+		} else {
+			price = "found, but no number"
+		}
+	} else {
+		price = "not found"
+	}
 
 	var title string
-    afterSlash := url[strings.LastIndex(url, "/")+1:]
+	afterSlash := url[strings.LastIndex(url, "/")+1:]
 	firstDot := strings.Index(afterSlash, ".")
 	secondDot := strings.Index(afterSlash[firstDot+1:], ".")
 	if firstDot != -1 && secondDot != -1 {

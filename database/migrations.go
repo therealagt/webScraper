@@ -4,7 +4,7 @@ import (
 	"database/sql"
 )
 
-/* migrate db - ORIGINAL MIGRATION WIEDERHERSTELLEN */
+// migrate db - ORIGINAL MIGRATION WIEDERHERSTELLEN
 func MigrateDatabase(db *sql.DB) error {
 	createTableSQL := `
 	CREATE TABLE IF NOT EXISTS urls (
@@ -22,7 +22,7 @@ func MigrateDatabase(db *sql.DB) error {
 	return err
 }
 
-/* NEUE separate Migration für raw_html */
+// new separate Migration für raw_html
 func MigrateRawHTML(db *sql.DB) error {
 	_, err := db.Exec(`DROP TABLE IF EXISTS raw_html`)
 	if err != nil {

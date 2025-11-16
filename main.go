@@ -17,13 +17,13 @@ import (
 	_ "github.com/lib/pq"
 )
 
-/* init */
+// init
 var db *sql.DB
 
 func main() {
 	var err error
 
-	/* db init and migrate stuff */
+	// db init and migrate stuff
 	db, err = database.InitDatabase()
 	if err != nil {
 		log.Fatalf("DB init error: %v", err)
@@ -47,10 +47,10 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	/* route handling */
+	// route handling
 	mux := handler.SetupRoutes(db, scraper, ctx)
 
-	/* server config */
+	// server config
 	srv := &http.Server{
 		Addr:    ":8080",
 		Handler: mux,

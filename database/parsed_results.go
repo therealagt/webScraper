@@ -7,19 +7,19 @@ import (
 )
 
 type ParsedResults struct {
-	URL 		string
-	Price		string
-	Title 		string 
-	CompletedAt	sql.NullTime
+	URL         string
+	Price       string
+	Title       string
+	CompletedAt sql.NullTime
 }
 
-/* migrate parsed results */
+// migrate parsed results
 func MigrateParsedResults(db *sql.DB) error {
-    _, err := db.Exec(`DROP TABLE IF EXISTS parsed_results`)
-    if err != nil {
-        return err
-    }
-    _, err = db.Exec(`
+	_, err := db.Exec(`DROP TABLE IF EXISTS parsed_results`)
+	if err != nil {
+		return err
+	}
+	_, err = db.Exec(`
         CREATE TABLE IF NOT EXISTS parsed_results (
             url TEXT,
             price TEXT,
@@ -27,10 +27,10 @@ func MigrateParsedResults(db *sql.DB) error {
             completed_at TIMESTAMP
         )
     `)
-    return err
+	return err
 }
 
-/* input of parsed results */
+// input of parsed results
 func (p *Postgres) InputParsedResults(url, price, title string, completed_at sql.NullTime) error {
 	_, err := p.DB.Exec(
 		"INSERT INTO parsed_results (url, price, title, completed_at) VALUES ($1, $2, $3, $4)",
@@ -42,65 +42,65 @@ func (p *Postgres) InputParsedResults(url, price, title string, completed_at sql
 	return err
 }
 
-/* read parsed results */
+// read parsed results
 func (p *Postgres) ReadParsedResults() ([]ParsedResults, error) {
-    rows, err := p.DB.Query("SELECT url, price, title, completed_at FROM parsed_results")
-    if err != nil {
-        return nil, err
-    }
-    defer rows.Close()
+	rows, err := p.DB.Query("SELECT url, price, title, completed_at FROM parsed_results")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
 
-    var results []ParsedResults
-    for rows.Next() {
-        var r ParsedResults
-        if err := rows.Scan(&r.URL, &r.Price, &r.Title, &r.CompletedAt); err != nil {
-            return nil, err
-        }
-        results = append(results, r)
-    }
-    return results, nil
+	var results []ParsedResults
+	for rows.Next() {
+		var r ParsedResults
+		if err := rows.Scan(&r.URL, &r.Price, &r.Title, &r.CompletedAt); err != nil {
+			return nil, err
+		}
+		results = append(results, r)
+	}
+	return results, nil
 }
 
-/* update parsed results */
+// update parsed results
 func (p *Postgres) UpdateParsedResult(url, price, title string, completed_at sql.NullTime) error {
-    _, err := p.DB.Exec("UPDATE parsed_results SET price=$2, title=$3, completed_at=$4 WHERE url=$1", 
-    url, price, title, completed_at,
-    )
-    return err
+	_, err := p.DB.Exec("UPDATE parsed_results SET price=$2, title=$3, completed_at=$4 WHERE url=$1",
+		url, price, title, completed_at,
+	)
+	return err
 }
 
-/* delete parsed results */
+// delete parsed results
 func (p *Postgres) DeleteParsedResult(url string) error {
-    _, err := p.DB.Exec("DELETE FROM parsed_results WHERE url=$1", url)
-    return err
+	_, err := p.DB.Exec("DELETE FROM parsed_results WHERE url=$1", url)
+	return err
 }
 
-/* count parsed results */
+// count parsed results
 func (p *Postgres) CountParsedResults() (int, error) {
-    var count int
-    err := p.DB.QueryRow("SELECT COUNT(*) FROM parsed_results").Scan(&count)
-    return count, err
+	var count int
+	err := p.DB.QueryRow("SELECT COUNT(*) FROM parsed_results").Scan(&count)
+	return count, err
 }
 
-/* rawhtml to parsedResults */
+// rawhtml to parsedResults
 func (p *Postgres) ProcessRawHTML(parseFunc func(url string, html []byte) (price, title string, completed_at sql.NullTime)) error {
-    rows, err := p.DB.Query("SELECT url, html, completed_at FROM raw_html")
-    if err != nil {
-        return err
-    }
-    defer rows.Close()
+	rows, err := p.DB.Query("SELECT url, html, completed_at FROM raw_html")
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
 
-    for rows.Next() {
-        var url string
-        var html []byte
-        var dbCompletedAt sql.NullTime
-        if err := rows.Scan(&url, &html, &dbCompletedAt); err != nil {
-            return err
-        }
-        price, title, completedAt := parseFunc(url, html)
-        if err := p.InputParsedResults(url, price, title, completedAt); err != nil {
-            return err
-        }
-    }
-    return nil
+	for rows.Next() {
+		var url string
+		var html []byte
+		var dbCompletedAt sql.NullTime
+		if err := rows.Scan(&url, &html, &dbCompletedAt); err != nil {
+			return err
+		}
+		price, title, completedAt := parseFunc(url, html)
+		if err := p.InputParsedResults(url, price, title, completedAt); err != nil {
+			return err
+		}
+	}
+	return nil
 }
